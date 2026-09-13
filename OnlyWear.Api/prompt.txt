@@ -1,17 +1,19 @@
-Necesito que crees 6 clases de entidades C# dentro de la carpeta Entities/, siguiendo el namespace OnlyWear.Api.Entities. Estas son las entidades y sus relaciones:
+Necesito modificar el modelo de datos: DisenoPersonalizado debe referenciar un Producto base (la remera lisa sobre la que se arma el diseño), para poder sacar el precio según el talle elegido del PrecioPorTalle de ese producto.
 
-1. Entities/Usuario.cs: Id (int), Nombre (string), Email (string), PasswordHash (string), Rol (string, default "Cliente"), FechaRegistro (DateTime, default UtcNow). Navegación: colección de Pedidos y colección de DisenoPersonalizado (Disenos).
+1. En Entities/DisenoPersonalizado.cs, agregá:
+   - ProductoBaseId (int, FK requerida, NO nullable)
+   - ProductoBase (navegación a Producto, requerida)
 
-2. Entities/Producto.cs: Id (int), Nombre (string), Descripcion (string), ImagenUrl (string), Activo (bool, default true). Navegación: colección de PrecioPorTalle (Precios) y colección de DetallePedido (DetallesPedido).
+2. En Entities/Producto.cs, agregá una colección de navegación DisenosBasados (los diseños personalizados que usan este producto como base).
 
-3. Entities/PrecioPorTalle.cs: Id (int), ProductoId (int, FK), Producto (navegación), Talle (string), Precio (decimal).
+3. En Data/OnlyWearDbContext.cs, configurá la relación DisenoPersonalizado → Producto (vía ProductoBaseId) con Fluent API, usando OnDelete(DeleteBehavior.Restrict) para no permitir borrar un producto que ya tiene diseños personalizados basados en él.
 
-4. Entities/DisenoPersonalizado.cs: Id (int), UsuarioId (int, FK), Usuario (navegación), ImagenClienteUrl (string), PosicionX (float), PosicionY (float), Escala (float), TalleElegido (string). Navegación: colección de DetallePedido (DetallesPedido).
+4. Generá una nueva migración de EF Core: dotnet ef migrations add AgregarProductoBaseADiseno
 
-5. Entities/Pedido.cs: Id (int), UsuarioId (int, FK), Usuario (navegación), Fecha (DateTime, default UtcNow), Estado (string, default "pagado"), MetodoPago (string), MetodoEntrega (string), Total (decimal). Navegación: colección de DetallePedido (Detalles).
+5. Aplicá la migración: dotnet ef database update
 
-6. Entities/DetallePedido.cs: Id (int), PedidoId (int, FK, requerido), Pedido (navegación), ProductoId (int?, FK, nullable), Producto (navegación nullable), DisenoPersonalizadoId (int?, FK, nullable), DisenoPersonalizado (navegación nullable), Talle (string), Cantidad (int), PrecioUnitario (decimal).
+6. En Controllers/PedidosController.cs, corregí la lógica de cálculo de precioUnitario para detalles con disenoPersonalizadoId: en vez de poner 0, buscá el DisenoPersonalizado, tomá su ProductoBaseId, y buscá el PrecioPorTalle de ese producto que coincida con el Talle del detalle. Si no existe ese precio para ese talle, devolvé 400 BadRequest con un mensaje claro.
 
-Importante: ProductoId y DisenoPersonalizadoId en DetallePedido deben ser nullable (int?) porque un detalle de pedido corresponde a uno de los dos, nunca ambos ni ninguno obligatoriamente. PedidoId en cambio es obligatorio (no nullable).
+7. En Controllers/DisenosPersonalizadosController.cs, actualizá el endpoint POST api/disenos para que también reciba y guarde productoBaseId, y el DTO CrearDisenoRequest correspondiente en DTOs/.
 
-Usá inicializadores de propiedad con string.Empty para strings y = null! para navegaciones requeridas no nulas, siguiendo las convenciones estándar de C# para entidades de Entity Framework Core.
+Al final corré dotnet build. Si hay errores, arreglalos vos mismo iterando hasta que compile sin errores ni advertencias.

@@ -10,4 +10,5 @@ public class Producto
 
     public ICollection<PrecioPorTalle> Precios { get; set; } = new List<PrecioPorTalle>();
     public ICollection<DetallePedido> DetallesPedido { get; set; } = new List<DetallePedido>();
+    public ICollection<DisenoPersonalizado> DisenosBasados { get; set; } = new List<DisenoPersonalizado>();
 }

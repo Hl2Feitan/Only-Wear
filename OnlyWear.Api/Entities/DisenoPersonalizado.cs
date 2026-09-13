@@ -5,6 +5,8 @@ public class DisenoPersonalizado
     public int Id { get; set; }
     public int UsuarioId { get; set; }
     public Usuario Usuario { get; set; } = null!;
+    public int ProductoBaseId { get; set; }
+    public Producto ProductoBase { get; set; } = null!;
     public string ImagenClienteUrl { get; set; } = string.Empty;
     public float PosicionX { get; set; }
     public float PosicionY { get; set; }

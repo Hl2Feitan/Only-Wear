@@ -1,0 +1,31 @@
+## ---- .NET / Backend ----
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+# Archivos de configuración sensibles (connection strings, passwords)
+appsettings.Development.json
+appsettings.Local.json
+
+## ---- React / Frontend (Vite) ----
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
+## ---- Sistema operativo / Editores ----
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+## ---- Otros ----
+prompt.txt

@@ -1,19 +1,17 @@
-Necesito modificar el modelo de datos: DisenoPersonalizado debe referenciar un Producto base (la remera lisa sobre la que se arma el diseño), para poder sacar el precio según el talle elegido del PrecioPorTalle de ese producto.
+Necesito arreglar un problema de referencias circulares al serializar a JSON: los Controllers devuelven entidades de Entity Framework directo (Producto con su colección Precios, y cada PrecioPorTalle con navegación de vuelta a Producto), lo que genera un ciclo infinito al serializar.
 
-1. En Entities/DisenoPersonalizado.cs, agregá:
-   - ProductoBaseId (int, FK requerida, NO nullable)
-   - ProductoBase (navegación a Producto, requerida)
+Solución: creá DTOs de respuesta en DTOs/ para reemplazar las entidades que se devuelven directamente en los endpoints GET, y actualizá los controllers para mapear entidad → DTO antes de devolver.
 
-2. En Entities/Producto.cs, agregá una colección de navegación DisenosBasados (los diseños personalizados que usan este producto como base).
+1. DTOs/ProductoResponse.cs: Id, Nombre, Descripcion, ImagenUrl, Activo, y una lista de PrecioPorTalleResponse (Id, Talle, Precio) — SIN navegación de vuelta a Producto.
 
-3. En Data/OnlyWearDbContext.cs, configurá la relación DisenoPersonalizado → Producto (vía ProductoBaseId) con Fluent API, usando OnDelete(DeleteBehavior.Restrict) para no permitir borrar un producto que ya tiene diseños personalizados basados en él.
+2. DTOs/DisenoPersonalizadoResponse.cs: Id, UsuarioId, ProductoBaseId, ImagenClienteUrl, PosicionX, PosicionY, Escala, TalleElegido — SIN navegación a Usuario ni a Producto completos.
 
-4. Generá una nueva migración de EF Core: dotnet ef migrations add AgregarProductoBaseADiseno
+3. Actualizá Controllers/ProductosController.cs: en los endpoints GET (lista y por id), mapeá cada Producto a ProductoResponse antes de devolver, incluyendo su lista de precios mapeada a PrecioPorTalleResponse.
 
-5. Aplicá la migración: dotnet ef database update
+4. Actualizá Controllers/DisenosPersonalizadosController.cs: en los endpoints GET, mapeá a DisenoPersonalizadoResponse.
 
-6. En Controllers/PedidosController.cs, corregí la lógica de cálculo de precioUnitario para detalles con disenoPersonalizadoId: en vez de poner 0, buscá el DisenoPersonalizado, tomá su ProductoBaseId, y buscá el PrecioPorTalle de ese producto que coincida con el Talle del detalle. Si no existe ese precio para ese talle, devolvé 400 BadRequest con un mensaje claro.
+5. Revisá Controllers/PedidosController.cs: los endpoints GET que devuelven Pedido con sus DetallePedido probablemente tengan el mismo problema si DetallePedido incluye Producto o DisenoPersonalizado completos con su navegación de vuelta. Si ya existe un PedidoResponse/DetallePedidoResponse (según lo que armamos antes), confirmá que esos DTOs no incluyan las entidades completas de Producto/DisenoPersonalizado, sino solo los campos planos necesarios (nombre del producto, talle, cantidad, precioUnitario, etc.), y arreglalo si hace falta.
 
-7. En Controllers/DisenosPersonalizadosController.cs, actualizá el endpoint POST api/disenos para que también reciba y guarde productoBaseId, y el DTO CrearDisenoRequest correspondiente en DTOs/.
+6. Revisá también Controllers/PreciosPorTalleController.cs por el mismo problema.
 
-Al final corré dotnet build. Si hay errores, arreglalos vos mismo iterando hasta que compile sin errores ni advertencias.
+Al final corré dotnet build. Si compila bien, levantá el servidor con dotnet run y hacé una prueba rápida: llamá a GET /api/productos con curl o Invoke-RestMethod y confirmá que responde 200 con JSON válido, sin excepción de ciclo. Después cerrá el servidor.
